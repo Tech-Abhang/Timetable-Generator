@@ -8,7 +8,7 @@ import { CalendarDays, FileSpreadsheet, School } from "lucide-react";
 import FileUpload from "@/components/FileUpload";
 import TimetableDisplay from "@/components/TimetableDisplay";
 import { Separator } from "@/components/ui/separator";
-import { Course, Classroom, Timetable } from "@/types/timetable";
+import { Course, Classroom, Timetable, Department } from "@/types/timetable";
 import { parseCoursesCSV, parseClassroomsCSV } from "@/utils/csvParser";
 import { generateTimetables } from "@/utils/timetableGenerator";
 
@@ -20,7 +20,7 @@ const Index = () => {
   const [timetables, setTimetables] = useState<Timetable[]>([]);
   const [activeTab, setActiveTab] = useState("setup");
   
-  const handleCourseFileUpload = async (file: File, department: "DSAI" | "ECE" | "CSE") => {
+  const handleCourseFileUpload = async (file: File, department: Department) => {
     try {
       const content = await file.text();
       const parsedCourses = parseCoursesCSV(content, department);
@@ -170,7 +170,7 @@ const Index = () => {
                   <h3 className="text-sm font-medium mb-2">DSAI Courses</h3>
                   <FileUpload 
                     onFileUpload={(file) => handleCourseFileUpload(file, "DSAI")} 
-                    fileType="DSAI courses" 
+                    fileType="courses" 
                     accept=".csv" 
                   />
                 </div>
@@ -178,7 +178,7 @@ const Index = () => {
                   <h3 className="text-sm font-medium mb-2">ECE Courses</h3>
                   <FileUpload 
                     onFileUpload={(file) => handleCourseFileUpload(file, "ECE")} 
-                    fileType="ECE courses" 
+                    fileType="courses" 
                     accept=".csv" 
                   />
                 </div>
@@ -186,7 +186,7 @@ const Index = () => {
                   <h3 className="text-sm font-medium mb-2">CSE Courses</h3>
                   <FileUpload 
                     onFileUpload={(file) => handleCourseFileUpload(file, "CSE")} 
-                    fileType="CSE courses" 
+                    fileType="courses" 
                     accept=".csv" 
                   />
                 </div>

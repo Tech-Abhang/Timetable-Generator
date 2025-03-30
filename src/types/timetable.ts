@@ -1,4 +1,6 @@
 
+export type Department = "DSAI" | "ECE" | "CSE";
+
 export interface Course {
   courseName: string;
   faculty: string;
@@ -10,7 +12,7 @@ export interface Course {
   seminarHours: number; // S
   totalCredits: number; // C
   elective: string; // "0", "B1", "B2", "B3", "B4"
-  department?: "DSAI" | "ECE" | "CSE"; // Added department field
+  department?: Department; // Updated to use the Department type
 }
 
 export interface Classroom {
@@ -38,12 +40,12 @@ export interface TimetableEntry {
   type: "Lecture" | "Tutorial" | "Practical" | "Elective" | "Lunch";
   classType?: "B1" | "B2" | "B3" | "B4";
   semester: number;
-  department?: string; // Added department field
+  department?: Department; // Updated to use the Department type
 }
 
 export interface Timetable {
   semester: number;
-  department?: string; // Added department field
+  department?: Department; // Updated to use the Department type
   entries: TimetableEntry[];
 }
 

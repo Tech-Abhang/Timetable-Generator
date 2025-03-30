@@ -1,8 +1,7 @@
-
 import Papa from 'papaparse';
-import { Course, Classroom, CourseCSVRow, ClassroomCSVRow } from '../types/timetable';
+import { Course, Classroom, CourseCSVRow, ClassroomCSVRow, Department } from '../types/timetable';
 
-export const parseCoursesCSV = (csvData: string, defaultDepartment?: string): Course[] => {
+export const parseCoursesCSV = (csvData: string, defaultDepartment?: Department): Course[] => {
   const result = Papa.parse(csvData, {
     header: true,
     skipEmptyLines: true,
@@ -32,6 +31,12 @@ export const parseCoursesCSV = (csvData: string, defaultDepartment?: string): Co
       totalCredits = parseInt(creditsMatch[5] || row.C) || 0;
     }
     
+    // Validate department value to ensure it's a valid Department type
+    const department = row.Department || defaultDepartment;
+    const validDepartment = (department === "DSAI" || department === "ECE" || department === "CSE") 
+      ? department 
+      : undefined;
+    
     return {
       courseName: row["Course Name"],
       faculty: row.Faculty,
@@ -43,7 +48,7 @@ export const parseCoursesCSV = (csvData: string, defaultDepartment?: string): Co
       seminarHours: parseInt(row.S) || seminarHours,
       totalCredits: parseInt(row.C) || totalCredits,
       elective: row.Elective || "0",
-      department: row.Department || defaultDepartment
+      department: validDepartment
     };
   });
 };

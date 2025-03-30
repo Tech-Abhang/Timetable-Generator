@@ -1,139 +1,107 @@
 
-import { useState } from "react";
+import { ChangeEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
-import { Upload, XCircle, Check } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Upload, CheckCircle, AlertCircle } from "lucide-react";
 
-interface FileUploadProps {
+type FileUploadProps = {
   onFileUpload: (file: File) => void;
-  fileType: "courses" | "classrooms";
-  accept: string;
-}
+  fileType: string;
+  accept?: string;
+};
 
 const FileUpload = ({ onFileUpload, fileType, accept }: FileUploadProps) => {
-  const [file, setFile] = useState<File | null>(null);
-  const [dragging, setDragging] = useState(false);
-  
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const selectedFile = e.target.files[0];
-      
-      if (!selectedFile.name.endsWith(".csv")) {
-        toast.error("Please upload a CSV file");
-        return;
-      }
-      
-      setFile(selectedFile);
-      onFileUpload(selectedFile);
-      toast.success(`${fileType === "courses" ? "Courses" : "Classrooms"} file uploaded successfully`);
+  const [isDragging, setIsDragging] = useState(false);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<"idle" | "success" | "error">("idle");
+
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      handleFile(files[0]);
     }
   };
-  
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragging(true);
-  };
-  
-  const handleDragLeave = () => {
-    setDragging(false);
-  };
-  
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragging(false);
+
+  const handleFile = (file: File) => {
+    setFileName(file.name);
     
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const droppedFile = e.dataTransfer.files[0];
-      
-      if (!droppedFile.name.endsWith(".csv")) {
-        toast.error("Please upload a CSV file");
-        return;
-      }
-      
-      setFile(droppedFile);
-      onFileUpload(droppedFile);
-      toast.success(`${fileType === "courses" ? "Courses" : "Classrooms"} file uploaded successfully`);
+    try {
+      onFileUpload(file);
+      setUploadStatus("success");
+    } catch (error) {
+      console.error("Error handling file:", error);
+      setUploadStatus("error");
     }
   };
-  
-  const removeFile = () => {
-    setFile(null);
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragging(true);
   };
-  
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragging(false);
+    
+    const files = event.dataTransfer.files;
+    if (files && files.length > 0) {
+      handleFile(files[0]);
+    }
+  };
+
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="text-lg">
-          {fileType === "courses" ? "Upload Course Data" : "Upload Classroom Data"}
-        </CardTitle>
-        <CardDescription>
-          {fileType === "courses" 
-            ? "Upload a CSV file containing course data with columns for Course Name, Faculty, Credits, Semester, etc."
-            : "Upload a CSV file containing classroom data with Room Number, Capacity, and Type."
-          }
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div
-          className={`border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center min-h-40 transition-colors ${
-            dragging 
-              ? "border-accent bg-accent/10" 
-              : file 
-                ? "border-green-500 bg-green-50"
-                : "border-gray-300 hover:border-accent"
-          }`}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        >
-          {file ? (
-            <div className="flex flex-col items-center gap-3">
-              <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-                <Check className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-medium">{file.name}</p>
-                <p className="text-xs text-gray-500">
-                  {(file.size / 1024).toFixed(2)} KB
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-2"
-                onClick={removeFile}
-              >
-                <XCircle className="mr-2 h-4 w-4" />
-                Remove File
-              </Button>
-            </div>
-          ) : (
-            <>
-              <Upload className="h-10 w-10 text-gray-400 mb-2" />
-              <p className="text-sm font-medium mb-1">
-                Drag and drop your CSV file here
-              </p>
-              <p className="text-xs text-gray-500 mb-4">
-                or click to browse
-              </p>
-              <input
-                type="file"
-                id={`file-upload-${fileType}`}
-                className="hidden"
-                onChange={handleFileChange}
-                accept={accept}
-              />
-              <label htmlFor={`file-upload-${fileType}`}>
-                <Button variant="secondary" size="sm" className="cursor-pointer">
-                  Browse Files
-                </Button>
-              </label>
-            </>
-          )}
+    <div
+      className={`border-2 border-dashed rounded-lg p-4 text-center ${
+        isDragging ? "border-primary bg-secondary/20" : "border-gray-300"
+      } ${uploadStatus === "success" ? "border-green-500" : ""} ${
+        uploadStatus === "error" ? "border-red-500" : ""
+      }`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      <Input
+        type="file"
+        id={`file-upload-${fileType}`}
+        className="hidden"
+        onChange={handleFileChange}
+        accept={accept}
+      />
+      
+      {uploadStatus === "idle" && !fileName && (
+        <div className="py-4">
+          <Upload className="h-12 w-12 mx-auto text-gray-400" />
+          <p className="mt-2 text-sm text-gray-600">
+            Drag and drop your {fileType} file here, or
+          </p>
+          <label htmlFor={`file-upload-${fileType}`}>
+            <Button variant="outline" className="mt-2" type="button" size="sm">
+              Browse Files
+            </Button>
+          </label>
         </div>
-      </CardContent>
-    </Card>
+      )}
+      
+      {fileName && (
+        <div className="flex items-center justify-center space-x-2">
+          {uploadStatus === "success" ? (
+            <CheckCircle className="h-5 w-5 text-green-500" />
+          ) : uploadStatus === "error" ? (
+            <AlertCircle className="h-5 w-5 text-red-500" />
+          ) : null}
+          <span className="text-sm truncate max-w-[200px]">{fileName}</span>
+          <label htmlFor={`file-upload-${fileType}`}>
+            <Button variant="outline" size="sm" type="button">
+              Change
+            </Button>
+          </label>
+        </div>
+      )}
+    </div>
   );
 };
 

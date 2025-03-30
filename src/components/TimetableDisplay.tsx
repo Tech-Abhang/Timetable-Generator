@@ -1,14 +1,22 @@
-
 import { useState, useMemo } from "react";
-import { Timetable, TimetableEntry } from "../types/timetable";
+import { Timetable, TimetableEntry, Department } from "../types/timetable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Download, BookOpen } from "lucide-react";
+import { Download, BookOpen, Filter } from "lucide-react";
 import { jsPDF } from "jspdf";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface TimetableDisplayProps {
   timetables: Timetable[];
@@ -18,6 +26,7 @@ const TimetableDisplay = ({ timetables }: TimetableDisplayProps) => {
   const [selectedSemester, setSelectedSemester] = useState<string>(
     timetables.length > 0 ? timetables[0].semester.toString() : "1"
   );
+  const [selectedDepartment, setSelectedDepartment] = useState<Department | "All">("All");
   
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
   const timeSlots = [
@@ -26,9 +35,33 @@ const TimetableDisplay = ({ timetables }: TimetableDisplayProps) => {
   ];
   
   const activeTimetable = useMemo(() => {
-    const timetable = timetables.find(t => t.semester.toString() === selectedSemester);
-    return timetable || { semester: parseInt(selectedSemester), entries: [] };
-  }, [timetables, selectedSemester]);
+    let filtered = timetables.filter(t => t.semester.toString() === selectedSemester);
+    
+    if (selectedDepartment !== "All") {
+      filtered = filtered.filter(t => t.department === selectedDepartment);
+    }
+    
+    // If we found a timetable matching both filters, return it
+    if (filtered.length > 0) {
+      return filtered[0];
+    }
+    
+    // Otherwise, return an empty timetable
+    return { semester: parseInt(selectedSemester), entries: [], department: selectedDepartment === "All" ? undefined : selectedDepartment };
+  }, [timetables, selectedSemester, selectedDepartment]);
+  
+  // Get unique semesters and departments from timetables
+  const uniqueSemesters = useMemo(() => {
+    return [...new Set(timetables.map(t => t.semester))].sort((a, b) => a - b);
+  }, [timetables]);
+
+  const uniqueDepartments = useMemo(() => {
+    const depts = new Set<Department | undefined>();
+    timetables.forEach(t => {
+      if (t.department) depts.add(t.department);
+    });
+    return Array.from(depts);
+  }, [timetables]);
   
   const getEntryForTimeSlot = (day: string, timeSlot: string): TimetableEntry | undefined => {
     const [startTime, endTime] = timeSlot.split('-');
@@ -41,9 +74,10 @@ const TimetableDisplay = ({ timetables }: TimetableDisplayProps) => {
     try {
       const doc = new jsPDF('landscape');
       
-      // Add title
+      // Add title with semester and department info
       doc.setFontSize(18);
-      doc.text(`Timetable for Semester ${selectedSemester}`, 15, 15);
+      const titleText = `Timetable for Semester ${selectedSemester}${selectedDepartment !== "All" ? ` - ${selectedDepartment}` : ''}`;
+      doc.text(titleText, 15, 15);
       
       // Add timestamp
       doc.setFontSize(10);
@@ -137,7 +171,8 @@ const TimetableDisplay = ({ timetables }: TimetableDisplayProps) => {
         yPos += cellHeight;
       }
       
-      doc.save(`Timetable_Semester_${selectedSemester}.pdf`);
+      const filename = `Timetable_Semester_${selectedSemester}${selectedDepartment !== "All" ? `_${selectedDepartment}` : ''}.pdf`;
+      doc.save(filename);
       toast.success('Timetable downloaded successfully!');
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -150,24 +185,46 @@ const TimetableDisplay = ({ timetables }: TimetableDisplayProps) => {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-lg">Generated Timetable</CardTitle>
         <div className="flex items-center gap-4">
-          <Select
-            value={selectedSemester}
-            onValueChange={setSelectedSemester}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select Semester" />
-            </SelectTrigger>
-            <SelectContent>
-              {timetables.map((timetable) => (
-                <SelectItem 
-                  key={timetable.semester} 
-                  value={timetable.semester.toString()}
-                >
-                  Semester {timetable.semester}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <Select
+              value={selectedSemester}
+              onValueChange={setSelectedSemester}
+            >
+              <SelectTrigger className="w-[120px]">
+                <SelectValue placeholder="Semester" />
+              </SelectTrigger>
+              <SelectContent>
+                {uniqueSemesters.map((semester) => (
+                  <SelectItem 
+                    key={semester} 
+                    value={semester.toString()}
+                  >
+                    Semester {semester}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            <Select
+              value={selectedDepartment}
+              onValueChange={(value) => setSelectedDepartment(value as Department | "All")}
+            >
+              <SelectTrigger className="w-[120px]">
+                <SelectValue placeholder="Department" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Departments</SelectItem>
+                {uniqueDepartments.map((dept) => dept && (
+                  <SelectItem 
+                    key={dept} 
+                    value={dept}
+                  >
+                    {dept}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           
           <Button variant="outline" className="ml-2" onClick={downloadPDF}>
             <Download className="h-4 w-4 mr-2" />
@@ -186,59 +243,67 @@ const TimetableDisplay = ({ timetables }: TimetableDisplayProps) => {
           </TabsList>
           
           <TabsContent value="table" className="w-full overflow-auto">
-            <div className="min-w-[800px]">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr>
-                    <th className="timetable-header">Time/Day</th>
-                    {days.map(day => (
-                      <th key={day} className="timetable-header">{day}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {timeSlots.map(timeSlot => (
-                    <tr key={timeSlot}>
-                      <td className="timetable-time">{timeSlot}</td>
-                      {days.map(day => {
-                        const entry = getEntryForTimeSlot(day, timeSlot);
-                        return (
-                          <td 
-                            key={`${day}-${timeSlot}`} 
-                            className={cn(
-                              "timetable-cell",
-                              entry?.type === 'Lunch' && "timetable-lunch",
-                              !entry && "bg-white"
-                            )}
-                          >
-                            {entry && (
-                              <div className={cn(
-                                entry.type === 'Lecture' && "timetable-lecture",
-                                entry.type === 'Tutorial' && "timetable-tutorial",
-                                entry.type === 'Practical' && "timetable-practical",
-                                entry.type === 'Elective' && "timetable-elective",
-                                entry.type !== 'Lunch' && "p-1 rounded"
-                              )}>
-                                {entry.type === 'Lunch' ? (
-                                  <p className="font-medium">Lunch Break</p>
-                                ) : (
-                                  <>
-                                    <p className="font-medium">{entry.courseName}</p>
-                                    {entry.faculty && <p className="text-xs mt-1">{entry.faculty}</p>}
-                                    {entry.roomNumber && <p className="text-xs mt-1">Room: {entry.roomNumber}</p>}
-                                    {entry.classType && <p className="text-xs mt-1">Elective: {entry.classType}</p>}
-                                  </>
-                                )}
-                              </div>
-                            )}
-                          </td>
-                        );
-                      })}
+            {activeTimetable.entries.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                No timetable data available for Semester {selectedSemester} 
+                {selectedDepartment !== "All" ? ` - ${selectedDepartment}` : ''}
+              </div>
+            ) : (
+              <div className="min-w-[800px]">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="timetable-header">Time/Day</th>
+                      {days.map(day => (
+                        <th key={day} className="timetable-header">{day}</th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {timeSlots.map(timeSlot => (
+                      <tr key={timeSlot}>
+                        <td className="timetable-time">{timeSlot}</td>
+                        {days.map(day => {
+                          const entry = getEntryForTimeSlot(day, timeSlot);
+                          return (
+                            <td 
+                              key={`${day}-${timeSlot}`} 
+                              className={cn(
+                                "timetable-cell",
+                                entry?.type === 'Lunch' && "timetable-lunch",
+                                !entry && "bg-white"
+                              )}
+                            >
+                              {entry && (
+                                <div className={cn(
+                                  entry.type === 'Lecture' && "timetable-lecture",
+                                  entry.type === 'Tutorial' && "timetable-tutorial",
+                                  entry.type === 'Practical' && "timetable-practical",
+                                  entry.type === 'Elective' && "timetable-elective",
+                                  entry.type !== 'Lunch' && "p-1 rounded"
+                                )}>
+                                  {entry.type === 'Lunch' ? (
+                                    <p className="font-medium">Lunch Break</p>
+                                  ) : (
+                                    <>
+                                      <p className="font-medium">{entry.courseName}</p>
+                                      {entry.faculty && <p className="text-xs mt-1">{entry.faculty}</p>}
+                                      {entry.roomNumber && <p className="text-xs mt-1">Room: {entry.roomNumber}</p>}
+                                      {entry.classType && <p className="text-xs mt-1">Elective: {entry.classType}</p>}
+                                      {entry.department && <p className="text-xs mt-1">Dept: {entry.department}</p>}
+                                    </>
+                                  )}
+                                </div>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </CardContent>

@@ -1,1 +1,1 @@
-timetable generator for IIIT Dharwad
+AUTOMATED TIMETABLE GENERATOR FOR IIIT DHARWAD

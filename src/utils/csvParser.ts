@@ -59,10 +59,27 @@ export const parseClassroomsCSV = (csvData: string): Classroom[] => {
   }
   
   return (result.data as ClassroomCSVRow[]).map((row: ClassroomCSVRow) => {
+    const typeValue = row["TYPE(Lecture/Lab/Seminar)"];
+    
+    // Map the type values to our expected format
+    let roomType: "Lecture" | "Tutorial" | "Lab" | "All" = "All";
+    
+    if (typeValue.toLowerCase().includes("lecture")) {
+      roomType = "Lecture";
+    } else if (typeValue.toLowerCase().includes("lab")) {
+      roomType = "Lab";
+    } else if (typeValue.toLowerCase().includes("tutorial")) {
+      roomType = "Tutorial";
+    } else if (typeValue.toLowerCase().includes("seminar")) {
+      roomType = "All";
+    }
+    
     return {
-      roomNumber: row["Room Number"],
+      roomNumber: row["Classroom Name"],
       capacity: parseInt(row.Capacity) || 0,
-      type: row.Type as "Lecture" | "Tutorial" | "Lab" | "All"
+      type: roomType,
+      building: row.Building,
+      floor: row.Floor ? parseInt(row.Floor) : undefined
     };
   });
 };

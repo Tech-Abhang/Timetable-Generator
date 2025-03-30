@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { CalendarDays, FileSpreadsheet, School } from "lucide-react";
 import FileUpload from "@/components/FileUpload";
 import TimetableDisplay from "@/components/TimetableDisplay";
-import ClassroomInput from "@/components/ClassroomInput";
 import { Separator } from "@/components/ui/separator";
 import { Course, Classroom, Timetable } from "@/types/timetable";
 import { parseCoursesCSV, parseClassroomsCSV } from "@/utils/csvParser";
@@ -44,12 +43,12 @@ const Index = () => {
   const handleGenerateTimetables = () => {
     try {
       if (courses.length === 0) {
-        toast.error("Please upload or add course data");
+        toast.error("Please upload course data");
         return;
       }
       
       if (classrooms.length === 0) {
-        toast.error("Please add at least one classroom");
+        toast.error("Please upload classroom data");
         return;
       }
       
@@ -62,10 +61,6 @@ const Index = () => {
       console.error("Error generating timetables:", error);
       toast.error("Error generating timetables. Please check your input data.");
     }
-  };
-  
-  const handleClassroomsChange = (updatedClassrooms: Classroom[]) => {
-    setClassrooms(updatedClassrooms);
   };
   
   return (
@@ -105,11 +100,6 @@ const Index = () => {
               accept=".csv" 
             />
           </div>
-          
-          <ClassroomInput 
-            classrooms={classrooms} 
-            onClassroomsChange={handleClassroomsChange}
-          />
           
           <Card className="mt-6">
             <CardHeader>
@@ -164,7 +154,7 @@ const Index = () => {
                     Classrooms
                   </h3>
                   {classrooms.length === 0 ? (
-                    <p className="text-sm text-gray-500">No classrooms added yet</p>
+                    <p className="text-sm text-gray-500">No classrooms uploaded yet</p>
                   ) : (
                     <div className="rounded-md border overflow-hidden">
                       <div className="max-h-60 overflow-auto">
@@ -174,6 +164,12 @@ const Index = () => {
                               <th className="text-left p-2">Room</th>
                               <th className="text-left p-2">Capacity</th>
                               <th className="text-left p-2">Type</th>
+                              {classrooms[0]?.building && (
+                                <th className="text-left p-2">Building</th>
+                              )}
+                              {classrooms[0]?.floor !== undefined && (
+                                <th className="text-left p-2">Floor</th>
+                              )}
                             </tr>
                           </thead>
                           <tbody>
@@ -182,6 +178,12 @@ const Index = () => {
                                 <td className="p-2">{classroom.roomNumber}</td>
                                 <td className="p-2">{classroom.capacity}</td>
                                 <td className="p-2">{classroom.type}</td>
+                                {classroom.building && (
+                                  <td className="p-2">{classroom.building}</td>
+                                )}
+                                {classroom.floor !== undefined && (
+                                  <td className="p-2">{classroom.floor}</td>
+                                )}
                               </tr>
                             ))}
                           </tbody>
@@ -207,7 +209,7 @@ const Index = () => {
                 </Button>
                 {(courses.length === 0 || classrooms.length === 0) && (
                   <p className="text-sm text-gray-500 mt-2">
-                    Please add both courses and classrooms to generate timetables
+                    Please upload both courses and classrooms data to generate timetables
                   </p>
                 )}
               </div>

@@ -16,8 +16,21 @@ const getSuitableClassrooms = (
   classrooms: Classroom[], 
   type: "Lecture" | "Tutorial" | "Lab"
 ): Classroom[] => {
+  if (type === "Lab") {
+    return classrooms.filter(room => 
+      room.type === "Lab" || room.type === "All"
+    );
+  }
+  
+  if (type === "Tutorial") {
+    return classrooms.filter(room => 
+      room.type === "Tutorial" || room.type === "Lecture" || room.type === "All"
+    );
+  }
+  
+  // For lectures
   return classrooms.filter(room => 
-    room.type === type || room.type === "All"
+    room.type === "Lecture" || room.type === "All"
   );
 };
 

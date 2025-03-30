@@ -16,6 +16,8 @@ export interface Classroom {
   roomNumber: string;
   capacity: number;
   type: "Lecture" | "Tutorial" | "Lab" | "All";
+  building?: string;
+  floor?: number;
 }
 
 export interface TimeSlot {
@@ -56,7 +58,9 @@ export interface CourseCSVRow {
 }
 
 export interface ClassroomCSVRow {
-  "Room Number": string;
+  "Classroom Name": string;
   Capacity: string;
-  Type: string;
+  "TYPE(Lecture/Lab/Seminar)": string;
+  Building?: string;
+  Floor?: string;
 }

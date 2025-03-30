@@ -63,8 +63,31 @@ export const generateTimetables = (
   courses: Course[], 
   classrooms: Classroom[]
 ): Timetable[] => {
+  console.log("Starting timetable generation with:", {
+    coursesCount: courses.length,
+    classroomsCount: classrooms.length
+  });
+  
+  // Validate input
+  if (!courses || courses.length === 0) {
+    console.error("No courses provided for timetable generation");
+    return [];
+  }
+  
+  if (!classrooms || classrooms.length === 0) {
+    console.error("No classrooms provided for timetable generation");
+    return [];
+  }
+  
   // Create a timetable for each semester
   const semesters = [...new Set(courses.map(course => course.semester))];
+  console.log("Detected semesters:", semesters);
+  
+  if (semesters.length === 0) {
+    console.error("No valid semesters found in courses data");
+    return [];
+  }
+  
   const timetables: Timetable[] = [];
   
   // Track booked rooms and faculty
@@ -121,6 +144,11 @@ export const generateTimetables = (
       bookedSemesters.set(semester, new Map());
     }
     const semesterMap = bookedSemesters.get(semester);
+    if (!semesterMap) {
+      const newMap = new Map<string, Set<string>>();
+      bookedSemesters.set(semester, newMap);
+      semesterMap = newMap;
+    }
     if (!semesterMap.has(roomKey)) {
       semesterMap.set(roomKey, new Set());
     }
@@ -131,6 +159,11 @@ export const generateTimetables = (
   const electiveCourses = courses.filter(course => course.elective !== "0");
   const regularCourses = courses.filter(course => course.elective === "0");
   
+  console.log("Courses breakdown:", {
+    electiveCourses: electiveCourses.length,
+    regularCourses: regularCourses.length
+  });
+  
   // Group electives by their code (B1, B2, etc.)
   const electiveGroups = new Map<string, Course[]>();
   for (const course of electiveCourses) {
@@ -139,16 +172,27 @@ export const generateTimetables = (
     }
     electiveGroups.get(course.elective)?.push(course);
   }
+  
+  console.log("Elective groups:", Array.from(electiveGroups.keys()));
 
   // Schedule each elective group together in the same time slots
   for (const [groupCode, groupCourses] of electiveGroups.entries()) {
+    console.log(`Processing elective group ${groupCode} with ${groupCourses.length} courses`);
+    
     // Find common semester(s) for this elective group
     const electiveSemesters = [...new Set(groupCourses.map(c => c.semester))];
+    console.log(`Elective group ${groupCode} spans semesters:`, electiveSemesters);
     
     // For each lecture hour required
     const maxLectureHours = Math.max(...groupCourses.map(c => c.lectureHours));
     const maxTutorialHours = Math.max(...groupCourses.map(c => c.tutorialHours));
     const maxPracticalHours = Math.max(...groupCourses.map(c => c.practicalHours));
+    
+    console.log(`Elective group ${groupCode} requirements:`, {
+      maxLectureHours,
+      maxTutorialHours,
+      maxPracticalHours
+    });
 
     // Schedule lectures
     let lecturesScheduled = 0;
@@ -208,6 +252,7 @@ export const generateTimetables = (
               semesterMap.get(`${day}-${timeSlotStr}`)?.add('booked');
             }
             
+            console.log(`Scheduled lecture ${lecturesScheduled + 1} for elective group ${groupCode} on ${day} at ${timeSlotStr}`);
             lecturesScheduled++;
             break dayLoop;
           }
@@ -242,6 +287,7 @@ export const generateTimetables = (
               }
             }
             
+            console.log(`Scheduled tutorial ${tutorialsScheduled + 1} for elective group ${groupCode} on ${day} at ${timeSlotStr}`);
             tutorialsScheduled++;
             break dayLoop;
           }
@@ -276,22 +322,42 @@ export const generateTimetables = (
               }
             }
             
+            console.log(`Scheduled practical ${practicalsScheduled + 1} for elective group ${groupCode} on ${day} at ${timeSlotStr}`);
             practicalsScheduled++;
             break dayLoop;
           }
         }
       }
+      
+      // Check for infinite loops - if we can't schedule anymore, break out
+      if (
+        (lecturesScheduled === 0 && maxLectureHours > 0) ||
+        (tutorialsScheduled === 0 && maxTutorialHours > 0) ||
+        (practicalsScheduled === 0 && maxPracticalHours > 0)
+      ) {
+        console.error(`Could not schedule all required sessions for elective group ${groupCode}`);
+        break; // Break out of the while loop to prevent infinite loop
+      }
     }
   }
 
+  console.log("Starting to schedule regular courses...");
+  
   // Now schedule regular courses
   for (const course of regularCourses) {
     const timetable = timetables.find(t => t.semester === course.semester);
-    if (!timetable) continue;
+    if (!timetable) {
+      console.error(`No timetable found for semester ${course.semester}`);
+      continue;
+    }
+    
+    console.log(`Scheduling course: ${course.courseName}, Semester: ${course.semester}, Hours: L${course.lectureHours}-T${course.tutorialHours}-P${course.practicalHours}`);
     
     // Schedule lectures
     let lecturesScheduled = 0;
     while (lecturesScheduled < course.lectureHours) {
+      let scheduled = false;
+      
       dayLoop: for (const day of DAYS) {
         for (const timeSlotStr of TIME_SLOTS) {
           if (isLunchBreak(timeSlotStr)) continue;
@@ -332,15 +398,26 @@ export const generateTimetables = (
             semester: course.semester
           });
           
+          console.log(`Scheduled lecture ${lecturesScheduled + 1}/${course.lectureHours} for ${course.courseName} on ${day} at ${timeSlotStr} in room ${availableRoom.roomNumber}`);
+          
           lecturesScheduled++;
+          scheduled = true;
           break dayLoop;
         }
+      }
+      
+      // If we couldn't schedule this lecture, break to avoid infinite loop
+      if (!scheduled) {
+        console.error(`Could not schedule lecture ${lecturesScheduled + 1}/${course.lectureHours} for ${course.courseName}`);
+        break;
       }
     }
     
     // Schedule tutorials
     let tutorialsScheduled = 0;
     while (tutorialsScheduled < course.tutorialHours) {
+      let scheduled = false;
+      
       dayLoop: for (const day of DAYS) {
         for (const timeSlotStr of TIME_SLOTS) {
           if (isLunchBreak(timeSlotStr)) continue;
@@ -381,15 +458,26 @@ export const generateTimetables = (
             semester: course.semester
           });
           
+          console.log(`Scheduled tutorial ${tutorialsScheduled + 1}/${course.tutorialHours} for ${course.courseName} on ${day} at ${timeSlotStr} in room ${availableRoom.roomNumber}`);
+          
           tutorialsScheduled++;
+          scheduled = true;
           break dayLoop;
         }
+      }
+      
+      // If we couldn't schedule this tutorial, break to avoid infinite loop
+      if (!scheduled) {
+        console.error(`Could not schedule tutorial ${tutorialsScheduled + 1}/${course.tutorialHours} for ${course.courseName}`);
+        break;
       }
     }
     
     // Schedule practicals
     let practicalsScheduled = 0;
     while (practicalsScheduled < course.practicalHours) {
+      let scheduled = false;
+      
       dayLoop: for (const day of DAYS) {
         for (const timeSlotStr of TIME_SLOTS) {
           if (isLunchBreak(timeSlotStr)) continue;
@@ -430,12 +518,22 @@ export const generateTimetables = (
             semester: course.semester
           });
           
+          console.log(`Scheduled practical ${practicalsScheduled + 1}/${course.practicalHours} for ${course.courseName} on ${day} at ${timeSlotStr} in room ${availableRoom.roomNumber}`);
+          
           practicalsScheduled++;
+          scheduled = true;
           break dayLoop;
         }
+      }
+      
+      // If we couldn't schedule this practical, break to avoid infinite loop
+      if (!scheduled) {
+        console.error(`Could not schedule practical ${practicalsScheduled + 1}/${course.practicalHours} for ${course.courseName}`);
+        break;
       }
     }
   }
 
+  console.log(`Timetable generation complete. Created ${timetables.length} timetables with a total of ${timetables.reduce((sum, t) => sum + t.entries.length, 0)} entries`);
   return timetables;
 };

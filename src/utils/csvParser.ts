@@ -40,7 +40,7 @@ export const parseCoursesCSV = (csvData: string): Course[] => {
       lectureHours: parseInt(row.L) || lectureHours,
       tutorialHours: parseInt(row.T) || tutorialHours,
       practicalHours: parseInt(row.P) || practicalHours,
-      seminarHours: seminarHours,
+      seminarHours: parseInt(row.S) || seminarHours,  // Use the S field from CSV
       totalCredits: parseInt(row.C) || totalCredits,
       elective: row.Elective || "0"
     };

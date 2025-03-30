@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +22,7 @@ const Index = () => {
       const content = await file.text();
       const parsedCourses = parseCoursesCSV(content);
       setCourses(parsedCourses);
+      toast.success(`Parsed ${parsedCourses.length} courses successfully`);
     } catch (error) {
       console.error("Error parsing courses file:", error);
       toast.error("Error parsing courses file. Please check the format.");
@@ -34,6 +34,7 @@ const Index = () => {
       const content = await file.text();
       const parsedClassrooms = parseClassroomsCSV(content);
       setClassrooms(parsedClassrooms);
+      toast.success(`Parsed ${parsedClassrooms.length} classrooms successfully`);
     } catch (error) {
       console.error("Error parsing classrooms file:", error);
       toast.error("Error parsing classrooms file. Please check the format.");
@@ -52,14 +53,26 @@ const Index = () => {
         return;
       }
       
+      console.log("Generating timetables with:", { 
+        courses: courses.length, 
+        classrooms: classrooms.length 
+      });
+      
       // Generate timetables
       const generatedTimetables = generateTimetables(courses, classrooms);
+      console.log("Generated timetables:", generatedTimetables);
+      
+      if (!generatedTimetables || generatedTimetables.length === 0) {
+        toast.error("Failed to generate timetables. No timetables were created.");
+        return;
+      }
+      
       setTimetables(generatedTimetables);
-      toast.success("Timetables generated successfully!");
+      toast.success(`Successfully generated ${generatedTimetables.length} timetables!`);
       setActiveTab("timetable");
     } catch (error) {
       console.error("Error generating timetables:", error);
-      toast.error("Error generating timetables. Please check your input data.");
+      toast.error(`Error generating timetables: ${(error as Error).message || "Unknown error"}`);
     }
   };
   

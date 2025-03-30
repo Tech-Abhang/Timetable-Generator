@@ -53,6 +53,7 @@ export interface CourseCSVRow {
   L: string;
   T: string;
   P: string;
+  S: string; // Adding the S field for seminar hours
   C: string;
   Elective: string;
 }

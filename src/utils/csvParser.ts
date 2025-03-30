@@ -2,7 +2,7 @@
 import Papa from 'papaparse';
 import { Course, Classroom, CourseCSVRow, ClassroomCSVRow } from '../types/timetable';
 
-export const parseCoursesCSV = (csvData: string): Course[] => {
+export const parseCoursesCSV = (csvData: string, defaultDepartment?: string): Course[] => {
   const result = Papa.parse(csvData, {
     header: true,
     skipEmptyLines: true,
@@ -40,9 +40,10 @@ export const parseCoursesCSV = (csvData: string): Course[] => {
       lectureHours: parseInt(row.L) || lectureHours,
       tutorialHours: parseInt(row.T) || tutorialHours,
       practicalHours: parseInt(row.P) || practicalHours,
-      seminarHours: parseInt(row.S) || seminarHours,  // Use the S field from CSV
+      seminarHours: parseInt(row.S) || seminarHours,
       totalCredits: parseInt(row.C) || totalCredits,
-      elective: row.Elective || "0"
+      elective: row.Elective || "0",
+      department: row.Department || defaultDepartment
     };
   });
 };

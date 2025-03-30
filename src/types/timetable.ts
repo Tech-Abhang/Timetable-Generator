@@ -10,6 +10,7 @@ export interface Course {
   seminarHours: number; // S
   totalCredits: number; // C
   elective: string; // "0", "B1", "B2", "B3", "B4"
+  department?: "DSAI" | "ECE" | "CSE"; // Added department field
 }
 
 export interface Classroom {
@@ -37,10 +38,12 @@ export interface TimetableEntry {
   type: "Lecture" | "Tutorial" | "Practical" | "Elective" | "Lunch";
   classType?: "B1" | "B2" | "B3" | "B4";
   semester: number;
+  department?: string; // Added department field
 }
 
 export interface Timetable {
   semester: number;
+  department?: string; // Added department field
   entries: TimetableEntry[];
 }
 
@@ -56,6 +59,7 @@ export interface CourseCSVRow {
   S: string; // Adding the S field for seminar hours
   C: string;
   Elective: string;
+  Department?: string; // Added department field
 }
 
 export interface ClassroomCSVRow {

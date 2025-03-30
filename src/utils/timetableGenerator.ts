@@ -1,4 +1,3 @@
-
 import { Course, Classroom, Timetable, TimetableEntry } from '../types/timetable';
 
 // Days and time slots
@@ -141,14 +140,17 @@ export const generateTimetables = (
     
     // Book the semester
     if (!bookedSemesters.has(semester)) {
-      bookedSemesters.set(semester, new Map());
+      bookedSemesters.set(semester, new Map<string, Set<string>>());
     }
-    const semesterMap = bookedSemesters.get(semester);
-    if (!semesterMap) {
-      const newMap = new Map<string, Set<string>>();
-      bookedSemesters.set(semester, newMap);
-      semesterMap = newMap;
+    
+    // Fixed: Get the semester map and handle the null case without reassignment
+    let semesterMap = bookedSemesters.get(semester);
+    if (semesterMap === undefined) {
+      // Create a new map, add it to bookedSemesters, and retrieve it again
+      bookedSemesters.set(semester, new Map<string, Set<string>>());
+      semesterMap = bookedSemesters.get(semester)!; // Non-null assertion as we just set it
     }
+    
     if (!semesterMap.has(roomKey)) {
       semesterMap.set(roomKey, new Set());
     }
@@ -246,10 +248,10 @@ export const generateTimetables = (
                 bookedSemesters.set(course.semester, new Map());
               }
               const semesterMap = bookedSemesters.get(course.semester);
-              if (!semesterMap.has(`${day}-${timeSlotStr}`)) {
+              if (semesterMap && !semesterMap.has(`${day}-${timeSlotStr}`)) {
                 semesterMap.set(`${day}-${timeSlotStr}`, new Set());
               }
-              semesterMap.get(`${day}-${timeSlotStr}`)?.add('booked');
+              semesterMap?.get(`${day}-${timeSlotStr}`)?.add('booked');
             }
             
             console.log(`Scheduled lecture ${lecturesScheduled + 1} for elective group ${groupCode} on ${day} at ${timeSlotStr}`);
@@ -280,10 +282,10 @@ export const generateTimetables = (
                   bookedSemesters.set(course.semester, new Map());
                 }
                 const semesterMap = bookedSemesters.get(course.semester);
-                if (!semesterMap.has(`${day}-${timeSlotStr}`)) {
+                if (semesterMap && !semesterMap.has(`${day}-${timeSlotStr}`)) {
                   semesterMap.set(`${day}-${timeSlotStr}`, new Set());
                 }
-                semesterMap.get(`${day}-${timeSlotStr}`)?.add('booked');
+                semesterMap?.get(`${day}-${timeSlotStr}`)?.add('booked');
               }
             }
             
@@ -315,10 +317,10 @@ export const generateTimetables = (
                   bookedSemesters.set(course.semester, new Map());
                 }
                 const semesterMap = bookedSemesters.get(course.semester);
-                if (!semesterMap.has(`${day}-${timeSlotStr}`)) {
+                if (semesterMap && !semesterMap.has(`${day}-${timeSlotStr}`)) {
                   semesterMap.set(`${day}-${timeSlotStr}`, new Set());
                 }
-                semesterMap.get(`${day}-${timeSlotStr}`)?.add('booked');
+                semesterMap?.get(`${day}-${timeSlotStr}`)?.add('booked');
               }
             }
             
